@@ -1,0 +1,482 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: altyn-dbo-template
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APP_NAME}-core
+    name: ${APP_NAME}-core
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: ${CORE_IMAGE_NAME}
+      importPolicy:
+        scheduled: true
+      name: ${APP_NAME}-oracle_scripts
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APP_NAME}-integration-service
+    name: ${APP_NAME}-integration-service
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: ${INTEGRATION_SERVICE_IMAGE_NAME}
+      importPolicy:
+        scheduled: true
+      name: ${APP_NAME}-altyn
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APP_NAME}-customerui
+    name: ${APP_NAME}-customerui
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: ${CUSTOMERUI_IMAGE_NAME}
+      name: ${APP_NAME}-altyn
+      referencePolicy:
+        type: Source
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}-core
+    name: ${APP_NAME}-core
+  spec:
+    replicas: 1
+    selector:
+      app: ${APP_NAME}-core
+      deploymentconfig: ${APP_NAME}-core
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}-core
+          deploymentconfig: ${APP_NAME}-core
+      spec:
+        containers:
+        - env:
+          - name: DATASOURCE_PASSWORD
+            value: ${DB_PASSWORD}
+          - name: DATASOURCE_URL
+            value: jdbc:oracle:thin:@//${DB_HOST}:${DB_PORT}/${DB_NAME}
+          - name: DATASOURCE_USER
+            value: ${DB_USER}
+          - name: DRIVER
+            value: ojdbc8.jar
+          - name: DRIVER_CLASS_NAME
+            value: oracle.jdbc.OracleDriver
+          - name: FLYWAY_LOCATIONS
+            value: classpath:db/oracle
+          - name: INTEGRATOR_URL
+            value: http://${APP_NAME}-integrator:8070/integration/v1
+          image: ' '
+          name: core
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - core
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}-core:$APP_NAME}-oracle_scripts
+      type: ImageChange
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}-customerui
+    name: ${APP_NAME}-customerui
+  spec:
+    replicas: 1
+    selector:
+      app: ${APP_NAME}-customerui
+      deploymentconfig: ${APP_NAME}-customerui
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}-customerui
+          deploymentconfig: ${APP_NAME}-customerui
+      spec:
+        containers:
+        - image: ' '
+          name: customerui
+          volumeMounts:
+          - mountPath: /etc/nginx/sites-enabled/default
+            name: default-site
+            subPath: default
+          - mountPath: /etc/nginx/conf.d
+            name: include-config
+          - mountPath: /etc/nginx/nginx.conf
+            name: nginx-config
+            subPath: nginx.conf
+          - mountPath: /var/cache/nginx
+            name: shmem
+        volumes:
+        - emptyDir:
+            medium: Memory
+          name: shmem
+        - configMap:
+            defaultMode: 420
+            name: ${APP_NAME}-default-site-config
+          name: default-site
+        - configMap:
+            defaultMode: 420
+            name: ${APP_NAME}-include-config
+          name: include-config
+        - configMap:
+            defaultMode: 420
+            name: ${APP_NAME}-nginx-config
+          name: nginx-config
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - customerui
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}-managerui:${APP_NAME}-altyn
+      type: ImageChange
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APP_NAME}-integration-service
+    name: ${APP_NAME}-integration-service
+  spec:
+    replicas: 1
+    selector:
+      app: ${APP_NAME}-integration-service
+      deploymentconfig: ${APP_NAME}-integration-service
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}-integration-service
+          deploymentconfig: ${APP_NAME}-integration-service
+      spec:
+        containers:
+        - env:
+          - name: PARAMS
+            value: --server.port=8080
+          image: ' '
+          name: integration-service
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - integration-service
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}-integration-service:${APP_NAME}-altyn
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APP_NAME}-core
+    name: ${APP_NAME}-core
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}-core
+      deploymentconfig: ${APP_NAME}-core
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APP_NAME}-customerui
+    name: ${APP_NAME}-customerui
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}-customerui
+      deploymentconfig: ${APP_NAME}-customerui
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APP_NAME}-customerui
+    name: ${APP_NAME}-customerui-secure
+  spec:
+    ports:
+    - port: 8443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: ${APP_NAME}-customerui
+      deploymentconfig: ${APP_NAME}-customerui
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${APP_NAME}-fileserver
+  spec:
+    ports:
+    - name: http-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APP_NAME}-integration-service
+    name: ${APP_NAME}-integrator
+  spec:
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}-integration-service
+      deploymentconfig: ${APP_NAME}-integration-service
+    type: ClusterIP
+- apiVersion: v1
+  kind: Endpoints
+  metadata:
+    name: ${APP_NAME}-fileserver
+  subsets:
+  - addresses:
+    - ip: ${FILESERVER_IP}
+    ports:
+    - name: http-tcp
+      port: ${FILESERVER_PORT}
+      protocol: TCP
+- apiVersion: v1
+  data:
+    default: |-
+      server {
+        listen 8443 ssl default_server;
+
+        ssl on;
+        ssl_certificate "/etc/nginx/ssl/server.crt";
+        ssl_certificate_key "/etc/nginx/ssl/server.key";
+
+        root /srv;
+        index index.html index.htm index.nginx-debian.html;
+        server_name _;
+
+        location / {
+          try_files $uri $uri/ =404;
+        }
+
+        location ~ ^/manager/.+ {
+               try_files $uri $uri/ /manager/index.html;
+        }
+
+        location /api {
+               proxy_pass http://${APP_NAME}-core:8080/api;
+               proxy_http_version 1.1;
+               proxy_set_header Upgrade $http_upgrade;
+               proxy_set_header Connection "upgrade";
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header X-Forwarded-Proto $scheme;
+               proxy_read_timeout 600s;
+       }
+
+       location /site {
+               proxy_pass http://${APP_NAME}-core:8080/site;
+               proxy_http_version 1.1;
+               proxy_set_header Upgrade $http_upgrade;
+               proxy_set_header Connection "upgrade";
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header X-Forwarded-Proto $scheme;
+               proxy_read_timeout 600s;
+       }
+
+       location /customer-chat-websocket {
+               proxy_pass http://${APP_NAME}-core:8080/customer-chat-websocket;
+               proxy_http_version 1.1;
+               proxy_set_header Upgrade $http_upgrade;
+               proxy_set_header Connection "upgrade";
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header X-Forwarded-Proto $scheme;
+               proxy_read_timeout 604800;
+       }
+       location /letter {
+               proxy_pass http://${APP_NAME}-core:8080/letter;
+               proxy_http_version 1.1;
+               proxy_set_header Upgrade $http_upgrade;
+               proxy_set_header Connection "upgrade";
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header X-Forwarded-Proto $scheme;
+               proxy_read_timeout 604800;
+       }
+
+       location /file {
+            proxy_pass http://${APP_NAME}-fileserver:8080/file;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 604800;
+       }
+      }
+  kind: ConfigMap
+  metadata:
+    name: ${APP_NAME}-default-site-config
+- apiVersion: v1
+  data:
+    default.conf: |-
+      server {
+          listen       8080;
+          server_name  localhost;
+
+          #charset koi8-r;
+
+          location / {
+              root   /usr/share/nginx/html;
+              index  index.html index.htm;
+          }
+
+          #error_page  404              /404.html;
+
+          # redirect server error pages to the static page /50x.html
+          #
+          error_page   500 502 503 504  /50x.html;
+          location = /50x.html {
+              root   /usr/share/nginx/html;
+          }
+
+          # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+          #
+          #location ~ \.php$ {
+          #    proxy_pass   http://127.0.0.1;
+          #}
+
+          # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+          #
+          #location ~ \.php$ {
+          #    root           html;
+          #    fastcgi_pass   127.0.0.1:9000;
+          #    fastcgi_index  index.php;
+          #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+          #    include        fastcgi_params;
+          #}
+
+          # deny access to .htaccess files, if Apache's document root
+          # concurs with nginx's one
+          #
+          #location ~ /\.ht {
+          #    deny  all;
+          #}
+      }
+  kind: ConfigMap
+  metadata:
+    name: ${APP_NAME}-include-config
+- apiVersion: v1
+  data:
+    nginx.conf: |
+      #user  nginx;
+      worker_processes  1;
+
+      #error_log  /var/log/nginx/error.log warn;
+      error_log /dev/stdout info;
+      pid        /tmp/nginx.pid;
+
+      events {
+          worker_connections  1024;
+      }
+
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+
+          log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                            '$status $body_bytes_sent "$http_referer" '
+                            '"$http_user_agent" "$http_x_forwarded_for"';
+
+      #    access_log  /var/log/nginx/access.log  main;
+          access_log /dev/stdout;
+
+          sendfile        on;
+      #    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=all:32m max_size=1g;
+
+          #tcp_nopush     on;
+
+          keepalive_timeout  65;
+
+          #gzip  on;
+
+          include /etc/nginx/conf.d/*.conf;
+          include /etc/nginx/sites-enabled/default;
+      }
+  kind: ConfigMap
+  metadata:
+    name: ${APP_NAME}-nginx-config
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: ${APP_NAME}-customerui
+    name: ${APP_NAME}-customerui-secure
+  spec:
+    host: ${FRONT_HOSTNAME}
+    tls:
+      termination: passthrough
+    to:
+      kind: Service
+      name: ${APP_NAME}-customerui-secure
+parameters:
+- name: APP_NAME
+  value: sample-dbo
+- name: CORE_IMAGE_NAME
+  value: docker.io/infinit10/core:oracle_scripts
+- name: INTEGRATION_SERVICE_IMAGE_NAME
+  value: docker.io/infinit10/integration-service:altyn
+- name: CUSTOMERUI_IMAGE_NAME
+  value: docker.io/infinit10/customerui:altyn
+- name: DB_PASSWORD
+  required: true
+- name: DB_USER
+  required: true
+- name: DB_HOST
+  required: true
+- name: DB_PORT
+  required: true
+- name: DB_NAME
+  required: true
+- name: FILESERVER_IP
+  required: true
+- name: FILESERVER_PORT
+  value: "8080"
+- name: FRONT_HOSTNAME
+  

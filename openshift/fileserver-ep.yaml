@@ -1,0 +1,11 @@
+kind: "Endpoints"
+apiVersion: "v1"
+metadata:
+  name: "fileserver"
+subsets:
+- addresses:
+  - ip: "10.0.0.0"
+  ports:
+  - name: "http-tcp"
+    port: 8080
+    protocol: TCP
