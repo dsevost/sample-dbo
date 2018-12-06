@@ -31,14 +31,14 @@ $ oc import-image infinit10/core:oracle_scripts --from=docker.io/infinit10/core:
 ### Create Integration Service from imagestream
 ```
 $ oc new-app --name integration-service integration-service:altyn -e PARAMS="--server.port=8080"
-$ oc expose dc/integration-service --name integrator --port 8070 --target-port 8080
+$ oc expose dc/integration-service --name integrator --port 8080 --target-port 8080
 ```
 
 ### Create Core Service
 ```
 $ oc new-app --name core core:oracle_scripts \
     -e DRIVER_CLASS_NAME=oracle.jdbc.OracleDriver \
-    -e INTEGRATOR_URL=http://integrator:8070/integration/v1 \
+    -e INTEGRATOR_URL=http://integrator:8080/integration/v1 \
     -e DRIVER=ojdbc8.jar \
     -e DATASOURCE_URL=jdbc:oracle:thin:@//$DB_HOST:$DB_PORT/$DB_SID \
     -e DATASOURCE_USER=$DB_USER \
