@@ -81,6 +81,10 @@ $ oc set volume dc/customerui --add \
     --sub-path=nginx.conf \
     -t configmap \
     --configmap-name=nginx-config
+$ oc set volume dc/customerui --add \
+    --name cache \
+    --mount-path=/var/cache/nginx \
+    -t emptyDir \
 $ # check attached volumes with new nginx configuration
 $ oc set volumes dc/customerui
 $ # enable rollout for service Customerui
