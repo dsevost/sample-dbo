@@ -30,13 +30,13 @@ $ oc import-image $BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_
 
 ### Create Integration Service from imagestream
 ```
-$ oc new-app --name integration-service $INTEGRATION_IMAGE_NAME -e PARAMS="--server.port=8080"
-$ oc expose dc/integration-service --name integrator --port 8080 --target-port 8080
+$ oc new-app --name ${INTEGRATION_SVC} $INTEGRATION_IMAGE_NAME -e PARAMS="--server.port=8080"
+$ oc expose dc/${INTEGRATION_SVC} --name integrator --port 8080 --target-port 8080
 ```
 
 ### Create Core Service
 ```
-$ oc new-app --name core $BACKEND_IMAGE_NAME \
+$ oc new-app --name ${BACKEND_SVC} $BACKEND_IMAGE_NAME \
     -e DRIVER_CLASS_NAME=oracle.jdbc.OracleDriver \
     -e INTEGRATOR_URL=http://integrator:8080/integration/v1 \
     -e DRIVER=ojdbc8.jar \
@@ -44,7 +44,7 @@ $ oc new-app --name core $BACKEND_IMAGE_NAME \
     -e DATASOURCE_USER=$DB_USER \
     -e DATASOURCE_PASSWORD=$DB_PASS \
     -e FLYWAY_LOCATIONS=classpath:db/oracle
-$ oc expose dc/core --name core --port 8080 --target-port 8080
+$ oc expose dc/${BACKEND_SVC} --name core --port 8080 --target-port 8080
 ```
 
 ### Prepare FileServer Endpoint and service
