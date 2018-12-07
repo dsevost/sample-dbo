@@ -90,7 +90,7 @@ objects:
         - core
         from:
           kind: ImageStreamTag
-          name: ${APP_NAME}-core:$APP_NAME}-oracle_scripts
+          name: ${APP_NAME}-core:${APP_NAME}-oracle_scripts
       type: ImageChange
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
@@ -149,7 +149,7 @@ objects:
         - customerui
         from:
           kind: ImageStreamTag
-          name: ${APP_NAME}-managerui:${APP_NAME}-altyn
+          name: ${APP_NAME}-customerui:${APP_NAME}-altyn
       type: ImageChange
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
