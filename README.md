@@ -23,20 +23,20 @@ $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 
 ### Load Images into OpenShift project
 ```
-$ oc import-image customerui:altyn --from=docker.io/infinit10/customerui:altyn --scheduled --confirm
-$ oc import-image integration-service:altyn --from=docker.io/infinit10/integration-service:altyn --scheduled --confirm
-$ oc import-image infinit10/core:oracle_scripts --from=docker.io/infinit10/core:oracle_scripts --scheduled --confirm
+$ oc import-image $FRONTEND_IMAGE_NAME --from=docker.io/infinit10/$FRONTEND_IMAGE_NAME --scheduled --confirm
+$ oc import-image $INTEGRATION_IMAGE_NAME --from=docker.io/infinit10/$INTEGRATION_IMAGE_NAME --scheduled --confirm
+$ oc import-image infinit10/$BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_NAME --scheduled --confirm
 ```
 
 ### Create Integration Service from imagestream
 ```
-$ oc new-app --name integration-service integration-service:altyn -e PARAMS="--server.port=8080"
+$ oc new-app --name integration-service $INTEGRATION_IMAGE_NAME -e PARAMS="--server.port=8080"
 $ oc expose dc/integration-service --name integrator --port 8080 --target-port 8080
 ```
 
 ### Create Core Service
 ```
-$ oc new-app --name core core:oracle_scripts \
+$ oc new-app --name core $BACKEND_IMAGE_NAME \
     -e DRIVER_CLASS_NAME=oracle.jdbc.OracleDriver \
     -e INTEGRATOR_URL=http://integrator:8080/integration/v1 \
     -e DRIVER=ojdbc8.jar \
@@ -56,7 +56,7 @@ $ oc get ep,svc
 
 ### Manage Customerui Service
 ```
-$ oc new-app --name customerui customerui:altyn
+$ oc new-app --name customerui $FRONTEND_IMAGE_NAME
 $ # cancel and pause rolling updates and triggering config changes
 $ oc rollout cancel dc/customerui
 $ oc rollout pause dc/customerui
