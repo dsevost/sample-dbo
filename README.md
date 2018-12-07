@@ -54,45 +54,45 @@ $ oc create -f openshift/fileserver-ep.yaml
 $ oc get ep,svc
 ```
 
-### Manage Customerui Service
+### Manage Customer Service
 ```
-$ oc new-app --name customerui $FRONTEND_IMAGE_NAME
+$ oc new-app --name ${FRONTEND_SVC} $FRONTEND_IMAGE_NAME
 $ # cancel and pause rolling updates and triggering config changes
-$ oc rollout cancel dc/customerui
-$ oc rollout pause dc/customerui
+$ oc rollout cancel dc/${FRONTEND_SVC}
+$ oc rollout pause dc/${FRONTEND_SVC}
 $ # override nginx configuration
 $ oc create cm nginx-config --from-file=conf/nginx.conf
 $ oc create cm default-site-config --from-file=conf/default
 $ oc create cm include-config --from-file=conf/default.conf
-$ oc set volume dc/customerui --add \
+$ oc set volume dc/${FRONTEND_SVC} --add \
     --name default-site \
     --mount-path=/etc/nginx/sites-enabled/default \
     --sub-path=default \
     -t configmap \
     --configmap-name=default-site-config
-$ oc set volume dc/customerui --add \
+$ oc set volume dc/${FRONTEND_SVC} --add \
     --name include-config \
     --mount-path=/etc/nginx/conf.d \
     -t configmap \
     --configmap-name=include-config
-$ oc set volume dc/customerui --add \
+$ oc set volume dc/${FRONTEND_SVC} --add \
     --name nginx-config \
     --mount-path=/etc/nginx/nginx.conf \
     --sub-path=nginx.conf \
     -t configmap \
     --configmap-name=nginx-config
-$ oc set volume dc/customerui --add \
+$ oc set volume dc/${FRONTEND_SVC} --add \
     --name cache \
     --mount-path=/var/cache/nginx \
     -t emptyDir \
 $ # check attached volumes with new nginx configuration
-$ oc set volumes dc/customerui
-$ # enable rollout for service Customerui
-$ oc rollout resume dc/customerui
-$ oc expose dc/customerui --name customerui-secure --port 8443 --target-port 8443
-$ oc create route passthrough --service=customerui-secure
+$ oc set volumes dc/${FRONTEND_SVC}
+$ # enable rollout for service ${FRONTEND_SVC}
+$ oc rollout resume dc/${FRONTEND_SVC}
+$ oc expose dc/${FRONTEND_SVC} --name ${FRONTEND_SVC}-secure --port 8443 --target-port 8443
+$ oc create route passthrough --service=${FRONTEND_SVC}-secure
 $ # open url
-$ echo URL=https://$(oc get route customerui-secure -o jsonpath='{ .spec.host }')
+$ echo URL=https://$(oc get route ${FRONTEND_SVC}-secure -o jsonpath='{ .spec.host }')
 ```
 ## Build from template
 ### Create project and load template
@@ -119,8 +119,8 @@ $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 ```
 ### Build sample-dbo application
 ```
-$ oc describe template altyn-dbo-template
-$ oc new-app altyn-dbo-template \
+$ oc describe template simple-dbo-template
+$ oc new-app simple-dbo-template \
     -p APP_NAME=my-dbo \
     -p DB_PASSWORD=$DB_PASS \
     -p DB_USER=$DB_PASS \
