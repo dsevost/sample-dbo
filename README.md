@@ -25,7 +25,7 @@ $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 ```
 $ oc import-image $FRONTEND_IMAGE_NAME --from=docker.io/infinit10/$FRONTEND_IMAGE_NAME --scheduled --confirm
 $ oc import-image $INTEGRATION_IMAGE_NAME --from=docker.io/infinit10/$INTEGRATION_IMAGE_NAME --scheduled --confirm
-$ oc import-image infinit10/$BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_NAME --scheduled --confirm
+$ oc import-image $BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_NAME --scheduled --confirm
 ```
 
 ### Create Integration Service from imagestream
