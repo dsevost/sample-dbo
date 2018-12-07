@@ -1,7 +1,7 @@
 # Simple DBO Application
 ## Build from scratch
 ```
-$ oc new-project sample-dbo
+$ oc new-project example-dbo
 ```
 ### Load Envirinment variables
 ```
@@ -97,9 +97,8 @@ $ echo URL=https://$(oc get route ${FRONTEND_SVC}-secure -o jsonpath='{ .spec.ho
 ## Build from template
 ### Create project and load template
 ```
-$ oc new-project sample-dbo
-$ oc create -f openshift/altyn-dbo.yaml
-$ vi 
+$ oc new-project example-dbo
+$ oc create -f openshift/simple-dbo.yaml
 ```
 ### Load Envirinment variables
 ```
@@ -117,7 +116,7 @@ $ oc create secret docker-registry $DOCKER_SECRET_NAME \
 $ oc get secret $DOCKER_SECRET_NAME -o jsonpath='{ .data.\.dockerconfigjson }' |base64 -d
 $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 ```
-### Build sample-dbo application
+### Build dbo application
 ```
 $ oc describe template simple-dbo-template
 $ oc new-app simple-dbo-template \
