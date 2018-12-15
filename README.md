@@ -44,7 +44,7 @@ $ for i in $BACKEND_IMAGE_NAME $FRONTEND_IMAGE_NAME $INTEGRATION_IMAGE_NAME ; do
 	--dest-cert-dir=. \
 	--authfile=tmp/config.json \
 	docker://docker.io/infinit10/$i \
-	docker://docker-registry.default.svc:5000/$PROJECT_NAME/$i
+	docker://docker-registry.default.svc:5000/$PROJECT_NAME/$i \
   done
 ```
 
