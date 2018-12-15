@@ -14,7 +14,7 @@ $ source env.sh
 
 1. Create ImageSteams directly from remote registry
 
-Create import secret and link it with 'default' service-account (to pull images from private registry)
+1.1. Create import secret and link it with 'default' service-account (to pull images from private registry)
 ```
 $ oc create secret docker-registry $DOCKER_SECRET_NAME \
     --docker-server=docker.io \
@@ -25,8 +25,7 @@ $ oc create secret docker-registry $DOCKER_SECRET_NAME \
 $ oc get secret $DOCKER_SECRET_NAME -o jsonpath='{ .data.\.dockerconfigjson }' |base64 -d
 $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 ```
-
-### Load Images into OpenShift project
+1.2. Load Images meta into OpenShift project
 ```
 $ oc import-image $FRONTEND_IMAGE_NAME --from=docker.io/infinit10/$FRONTEND_IMAGE_NAME --scheduled --confirm
 $ oc import-image $INTEGRATION_IMAGE_NAME --from=docker.io/infinit10/$INTEGRATION_IMAGE_NAME --scheduled --confirm
