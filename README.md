@@ -38,10 +38,11 @@ $ mkdir tmp
 $ oc get secrets $(oc get secrets | awk '/builder-dockercfg/ { print $1; }') \
     -o jsonpath='{ .data.\.dockercfg }' | base64 -d > tmp/config.json
 $ sed -i 's/}$/}}/; /^{/i{ "auths": ' tmp/config.json
+$ touch tmp/client-ca.crt
 $ for i in $BACKEND_IMAGE_NAME $FRONTEND_IMAGE_NAME $INTEGRATION_IMAGE_NAME ; do \
     skopeo copy --screds=$DOCKER_HUB_USER:$DOCKER_HUB_PASS \
 	--dest-tls-verify=false \
-	--dest-cert-dir=. \
+	--dest-cert-dir=tmp \
 	--authfile=tmp/config.json \
 	docker://docker.io/infinit10/$i \
 	docker://docker-registry.default.svc:5000/$PROJECT_NAME/$i \
