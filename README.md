@@ -32,7 +32,7 @@ $ oc import-image $INTEGRATION_IMAGE_NAME --from=docker.io/infinit10/$INTEGRATIO
 $ oc import-image $BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_NAME --scheduled --confirm
 ```
 
-2. Create a mirrors of remote images locally in OpenShift Registry
+2. Create a mirror of remote images locally in OpenShift Registry
 ```
 $ mkdir tmp
 $ oc get secrets $(oc get secrets | awk '/builder-dockercfg/ { print $1; }') \
