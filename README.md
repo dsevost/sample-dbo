@@ -1,7 +1,8 @@
 # Simple DBO Application
 ## Build from scratch
 ```
-$ oc new-project example-dbo
+$ export PROJECT_NAME=example-dbo
+$ oc new-project $PROJECT_NAME
 ```
 ### Load Envirinment variables
 ```
@@ -9,7 +10,11 @@ $ vi env.sh
 $ source env.sh
 ```
 
-### Create import secret and link it with 'default' service-account (to pull images from private registry)
+### Import Source Images to OpenShift
+
+1. Create ImageSteams directly from remote registry
+
+Create import secret and link it with 'default' service-account (to pull images from private registry)
 ```
 $ oc create secret docker-registry $DOCKER_SECRET_NAME \
     --docker-server=docker.io \
@@ -26,6 +31,22 @@ $ oc secrets link default $DOCKER_SECRET_NAME --for=pull
 $ oc import-image $FRONTEND_IMAGE_NAME --from=docker.io/infinit10/$FRONTEND_IMAGE_NAME --scheduled --confirm
 $ oc import-image $INTEGRATION_IMAGE_NAME --from=docker.io/infinit10/$INTEGRATION_IMAGE_NAME --scheduled --confirm
 $ oc import-image $BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_NAME --scheduled --confirm
+```
+
+2. Create a mirrors of remote images locally in OpenShift Registry
+```
+$ mkdir tmp
+$ oc get secrets $(oc get secrets | awk '/builder-dockercfg/ { print $1; }') \
+    -o jsonpath='{ .data.\.dockercfg }' | base64 -d > tmp/config.json
+$ sed -i 's/}$/}}/; /^{/i{ "auths": ' tmp/config.json
+$ for i in $BACKEND_IMAGE_NAME $FRONTEND_IMAGE_NAME $INTEGRATION_IMAGE_NAME ; do \
+    skopeo copy --screds=$DOCKER_HUB_USER:$DOCKER_HUB_PASS \
+	--dest-tls-verify=false \
+	--dest-cert-dir=. \
+	--authfile=tmp/config.json \
+	docker://docker.io/infinit10/$i \
+	docker://docker-registry.default.svc:5000/$PROJECT_NAME/$i
+  done
 ```
 
 ### Create Integration Service from imagestream
