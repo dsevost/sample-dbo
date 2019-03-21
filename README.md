@@ -19,7 +19,7 @@ $ source env.sh
 $ oc create secret docker-registry $DOCKER_SECRET_NAME \
     --docker-server=docker.io \
     --docker-username=$DOCKER_HUB_USER \
-    --docker-password=$DOCKER_HUNB_PASS \
+    --docker-password=$DOCKER_HUB_PASS \
     --docker-email=$DOCKER_HUB_EMAIL
 
 $ oc get secret $DOCKER_SECRET_NAME -o jsonpath='{ .data.\.dockerconfigjson }' |base64 -d
