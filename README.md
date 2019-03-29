@@ -33,6 +33,8 @@ $ oc import-image $BACKEND_IMAGE_NAME --from=docker.io/infinit10/$BACKEND_IMAGE_
 ```
 
 2. Create a mirror of remote images locally in OpenShift Registry
+If step before couldn't fetch images, it is possible to create a mirror locally
+
 ```
 $ mkdir tmp
 $ oc get secrets $(oc get secrets | awk '/builder-dockercfg/ { print $1; }') \
